@@ -1,6 +1,9 @@
 package com.company.Util;
 
-import java.awt.*;
+import com.company.GUI.MyPolygon;
+import com.company.GUI.MyRectangle;
+import com.company.GUI.RealPoint;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -9,75 +12,77 @@ public class PolygonHelper {
     public PolygonHelper() {
     }
 
-    public Polygon makePolygon(ArrayList<Rectangle> rectangles) {
-        ArrayList<Point> points = calcPoints(rectangles);
-        Polygon polygon = new Polygon();
+    public MyPolygon makePolygon(ArrayList<MyRectangle> myRectangles) {
+        ArrayList<RealPoint> points = calcPoints(myRectangles);
+        //System.out.println(myRectangles);
+        //System.out.println(points);
+        MyPolygon polygon = new MyPolygon();
         Collections.reverse(points);
-        for (Point point : points) {
-            polygon.addPoint(point.x, point.y);
+        for (RealPoint point : points) {
+            polygon.addPoint(point);
         }
         return polygon;
     }
 
-    private ArrayList<Point> calcPoints(ArrayList<Rectangle> rectangles) {
-        ArrayList<Point> ret = new ArrayList<>();
+    private ArrayList<RealPoint> calcPoints(ArrayList<MyRectangle> myRectangles) {
+        ArrayList<RealPoint> ret = new ArrayList<>();
 
-        ArrayList<Integer> yCoords = new ArrayList<>(getAllYCoords(rectangles));
+        ArrayList<Double> yCoords = new ArrayList<>(getAllYCoords(myRectangles));
         yCoords.sort(Comparator.naturalOrder());
 
-        int previousLeftCoord = 0;
-        int previousRightCoord = 0;
+        double previousLeftCoord = 0.0;
+        double previousRightCoord = 0.0;
 
-        for (Integer yCoord : yCoords) {
-            int minimumXLeftCoord = minXLeftCoord(yCoord, rectangles);
-            int maximumXRightCoord = maxXRightCoord(yCoord, rectangles);
+        for (double yCoord : yCoords) {
+            double minimumXLeftCoord = minXLeftCoord(yCoord, myRectangles);
+            double maximumXRightCoord = maxXRightCoord(yCoord, myRectangles);
 
-            if (yCoord.equals(yCoords.get(0))) {
-                ret.add(new Point(minimumXLeftCoord, yCoord));
+            if (yCoord == yCoords.get(0)) {
+                ret.add(new RealPoint((int) minimumXLeftCoord, (int) yCoord));
             } else {
                 if (minimumXLeftCoord != previousLeftCoord) {
-                    ret.add(0, new Point(previousLeftCoord, yCoord));
+                    ret.add(0, new RealPoint((int) previousLeftCoord, (int) yCoord));
                 }
-                ret.add(0, new Point(minimumXLeftCoord, yCoord));
+                ret.add(0, new RealPoint((int) minimumXLeftCoord, (int) yCoord));
                 if (maximumXRightCoord != previousRightCoord) {
-                    ret.add(new Point(previousRightCoord, yCoord));
+                    ret.add(new RealPoint((int) previousRightCoord, (int) yCoord));
                 }
             }
-            ret.add(new Point(maximumXRightCoord, yCoord));
+            ret.add(new RealPoint((int) maximumXRightCoord, (int) yCoord));
             previousLeftCoord = minimumXLeftCoord;
             previousRightCoord = maximumXRightCoord;
         }
         return ret;
     }
 
-    private Set<Integer> getAllYCoords(ArrayList<Rectangle> rectangles) {
-        ArrayList<Integer> allBottomYCoords = rectangles.stream()
-                .map(rectangle -> (rectangle.y + rectangle.height))
+    private Set<Double> getAllYCoords(ArrayList<MyRectangle> rectangles) {
+        ArrayList<Double> allBottomYCoords = rectangles.stream()
+                .map(rectangle -> (rectangle.getY() + rectangle.getHeight()))
                 .collect(Collectors.toCollection(ArrayList::new));
-        ArrayList<Integer> allTopYCoords = rectangles.stream()
-                .map(rectangle -> (rectangle.y))
+        ArrayList<Double> allTopYCoords = rectangles.stream()
+                .map(MyRectangle::getY)
                 .collect(Collectors.toCollection(ArrayList::new));
 
-        Set<Integer> allCoords = new HashSet<>();
+        Set<Double> allCoords = new HashSet<>();
         allCoords.addAll(allTopYCoords);
         allCoords.addAll(allBottomYCoords);
         return allCoords;
     }
 
-    private int minXLeftCoord(Integer y, ArrayList<Rectangle> rectangles) {
+    private Double minXLeftCoord(Double y, ArrayList<MyRectangle> rectangles) {
         return rectanglesAtY(y, rectangles).stream()
-                .map(rect -> (rect.x))
+                .map(MyRectangle::getX)
                 .min(Comparator.naturalOrder()).get();
     }
 
-    private int maxXRightCoord(Integer y, ArrayList<Rectangle> rectangles) {
+    private Double maxXRightCoord(Double y, ArrayList<MyRectangle> rectangles) {
         return rectanglesAtY(y, rectangles).stream()
-                .map(rect -> (rect.x + rect.width))
+                .map(rect -> (rect.getX() + rect.getWidth()))
                 .max(Comparator.naturalOrder()).get();
     }
 
-    private ArrayList<Rectangle> rectanglesAtY(Integer y, ArrayList<Rectangle> rectangles) {
-        ArrayList<Rectangle> rectsAtYExcBottomLines = rectsAtYExcBottomLines(y, rectangles);
+    private ArrayList<MyRectangle> rectanglesAtY(Double y, ArrayList<MyRectangle> rectangles) {
+        ArrayList<MyRectangle> rectsAtYExcBottomLines = rectsAtYExcBottomLines(y, rectangles);
 
         if (rectsAtYExcBottomLines.size() > 0) {
             return rectsAtYExcBottomLines;
@@ -86,15 +91,15 @@ public class PolygonHelper {
         }
     }
 
-    private ArrayList<Rectangle> rectsAtYExcBottomLines(Integer y, ArrayList<Rectangle> rectangles) {
+    private ArrayList<MyRectangle> rectsAtYExcBottomLines(Double y, ArrayList<MyRectangle> rectangles) {
         return rectangles.stream()
-                .filter(rect -> (rect.y) <= y && (rect.y + rect.height) > y)
+                .filter(rect -> (rect.getY()) <= y && (rect.getY() + rect.getHeight()) > y)
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    private ArrayList<Rectangle> rectsAtYIncBottomLines(Integer y, ArrayList<Rectangle> rectangles) {
+    private ArrayList<MyRectangle> rectsAtYIncBottomLines(Double y, ArrayList<MyRectangle> rectangles) {
         return rectangles.stream()
-                .filter(rect -> (rect.y) <= y && (rect.y + rect.height) == y)
+                .filter(rect -> (rect.getY()) <= y && (rect.getY() + rect.getHeight()) == y)
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 }

@@ -7,13 +7,13 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
-import java.util.Collections;
 
 public class MainGUI extends JFrame {
+    private ScreenConverter sc;
     private JPanel mainPanel;
-    private final ArrayList<Point> points;
-    private final ArrayList<Rectangle> toPoly = new ArrayList<>();
-    private Polygon poly = null;
+    private final ArrayList<RealPoint> points;
+    private final ArrayList<MyRectangle> toPoly = new ArrayList<>();
+    private MyPolygon poly = null;
     private final PolygonHelper ph = new PolygonHelper();
     private double zoomRatio = 1;
 
@@ -42,6 +42,7 @@ public class MainGUI extends JFrame {
     }
 
     public MainGUI() {
+        this.sc = new ScreenConverter(-16, 16, 32, 32, 1100, 550);
         setDefaults();
         points = new ArrayList<>();
         mainPanel.addMouseListener(new MouseAdapter() {
@@ -49,38 +50,22 @@ public class MainGUI extends JFrame {
             public void mousePressed(MouseEvent e) {
                 zoomRatio = 1;
                 int x = e.getX() + 5;
-                int y = e.getY() + 25;
+                int y = e.getY() + 35;
 
-                Point newShow;
+                RealPoint newShow;
 
                 switch (points.size()) {
                     case 0:
-                        //newShow = sc.real2Screen(new ScreenPoint(x, y));
-                        newShow = new Point(x, y);
+                        newShow = sc.s2r(new ScreenPoint(x, y));
                         points.add(newShow);
                         break;
                     case 1:
-                        newShow = new Point(x, y);
+                        newShow = sc.s2r(new ScreenPoint(x, y));
                         points.add(newShow);
-
-                        Rectangle generated;
-
-                        int width = Math.abs(points.get(0).x - points.get(1).x);
-                        int height = Math.abs(points.get(0).y - points.get(1).y);
-
-                        if (x < points.get(0).x && y < points.get(0).y) {
-                            generated = new Rectangle(x, y, width, height);
-                        } else if (x > points.get(0).x && y < points.get(0).y) {
-                            generated = new Rectangle(points.get(0).x, y, width, height);
-                        } else if (x < points.get(0).x && y > points.get(0).y) {
-                            generated = new Rectangle(x, points.get(0).y, width, height);
-                        } else {
-                            generated = new Rectangle(points.get(0).x, points.get(0).y, width, height);
-                        }
-
-                        toPoly.add(generated);
+                        toPoly.add(new MyRectangle(points));
                         poly = ph.makePolygon(toPoly);
                         points.clear();
+                        break;
                 }
                 repaint();
             }
@@ -89,18 +74,23 @@ public class MainGUI extends JFrame {
 
     @Override
     public void paint(Graphics g) {
+
+        sc.setSw(getWidth());
+        sc.setSh(getHeight());
+
         Graphics2D g2 = (Graphics2D) g;
         g2.setColor(Color.WHITE);
         g2.fillRect(0, 0, this.getWidth(), this.getHeight());
         drawBackground(g2, mainPanel);
         g2.setColor(Color.BLACK);
+
         try {
             if (points.size() > 0) {
-                for (Point point : points) {
-                    //ScreenPoint sp = sc.real2Screen(point);
-                    g2.drawOval(point.x, point.y, 3, 3);
-                    String coords = "x: " + point.x + ";y: " + point.y + ";";
-                    g2.drawString(coords, point.x + 5, point.y + 5);
+                for (RealPoint point : points) {
+                    ScreenPoint sp = sc.r2s(point);
+                    g2.drawOval(sp.getC(), sp.getR(), 3, 3);
+                    String coords = "x: " + sp.getC() + ";y: " + sp.getR() + ";";
+                    g2.drawString(coords, sp.getC(), sp.getR());
                 }
             }
         } catch (Exception e) {
@@ -108,18 +98,17 @@ public class MainGUI extends JFrame {
         }
         if (poly != null) {
             counter = toPoly.size();
-            for (Rectangle local : toPoly) {
-                local.x = (int) (local.x * zoomRatio);
-                local.y = (int) (local.y * zoomRatio);
-                local.width = (int) (local.width * zoomRatio);
-                local.height = (int) (local.height * zoomRatio);
+            for (MyRectangle local : toPoly) {
+                local.setX(local.getX() * zoomRatio);
+                local.setY(local.getY() * zoomRatio);
+                local.setWidth(local.getWidth() * zoomRatio);
+                local.setHeight(local.getHeight() * zoomRatio);
             }
             poly = ph.makePolygon(toPoly);
 
             g2.setColor(Color.BLACK);
-            g2.drawPolygon(poly);
             g2.setColor(Color.GREEN);
-            g2.fillPolygon(poly);
+            poly.draw(g2, sc);
         }
     }
 
